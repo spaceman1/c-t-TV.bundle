@@ -278,16 +278,17 @@ def ArchiveMenu(sender, archiveList):
 	return dir
 
 
-def getURL(URL, InstallDefault = False ):
+def getURL(url, installDefault=False):
 	'''This function tries to get ID / PW from supplied URLs
 If needed it can also set the DEFAULT handler with these credentials
 making successive calls with no need to specify ID-PW'''
 
+	# I have no idea where these come from. An unimplemented preferences perhaps?
 	global Protected
 	global Username
 	global Password
 
-	HEADER = {None:None}
+	header = {None:None}
 
 	req = urllib2.Request(URL)
 	
@@ -296,82 +297,66 @@ making successive calls with no need to specify ID-PW'''
 	try: handle = urllib2.urlopen(req)
 	except: pass
 	else:
-		# If we don't fail then the page isn't protected
-		Protected = "No"
+		# Here the page isn't protected
+		Protected = False
 		Log('(PLUG-IN) URL is NOT protected')
-		Log('(PLUG-IN) <==** EXIT getURL')
-		return (URL,HEADER)
+		return (url , header)
 
 	if not hasattr(e, 'code') or e.code != 401:
 		# we got an error - but not a 401 error
 		Log("(PLUG-IN) This page isn't protected by authentication.")
 		Log('(PLUG-IN) But we failed for another reason. %s' % (e.code))
-		Log('(PLUG-IN) <==** EXIT getURL')
 		return (None, None)
 
 	authline = e.headers['www-authenticate']
-	# this gets the www-authenticate line from the headers
-	# which has the authentication scheme and realm in it
-
-	authobj = re.compile(
-		r'''(?:\s*www-authenticate\s*:)?\s*(\w*)\s+realm=['"]([^'"]+)['"]''',
-		re.IGNORECASE)
 	# this regular expression is used to extract scheme and realm
-	matchobj = authobj.match(authline)
+	matchobj = re.match(r'(?:\s*www-authenticate\s*:)?\s*(\w*)\s+realm=['"]([^'"]+)['"]', authline, re.IGNORECASE)
 
 	if not matchobj:
 		# if the authline isn't matched by the regular expression
 		# then something is wrong
 		Log('(PLUG-IN) The authentication header is badly formed.')
 		Log('(PLUG-IN) Authline: %s' % (authline))
-		Protected = "Yes"
-		Log('(PLUG-IN) <==** EXIT getURL')
+		Protected = True
 		return (None, None)
 
 	scheme = matchobj.group(1)
-	REALM = matchobj.group(2)
+	realm = matchobj.group(2)
 	# here we've extracted the scheme
 	# and the realm from the header
 	if scheme.lower() != 'basic':
 		Log('(PLUG-IN) This function only works with BASIC authentication.')
-		Protected = "Yes"
-		Log('(PLUG-IN) <==** EXIT getURL')
+		Protected = True
 		return (None, None)
 
-	if InstallDefault:
+	if installDefault:
 		# Create an OpenerDirector with support for Basic HTTP Authentication...
 		auth_handler = urllib2.HTTPBasicAuthHandler()
-		auth_handler.add_password(realm=REALM,
-						uri=URL,
-						user=Username,
-						passwd=Password)
+		auth_handler.add_password(realm=realm, uri=url, user=Username, passwd=Password)
 		opener = urllib2.build_opener(auth_handler)
 		# ...and install it globally so it can be used with urlopen.
 		urllib2.install_opener(opener)
 
 		# All OK :-)
-		Protected = "Yes"
-		Log('(PLUG-IN) ### Alles Ready ! via default Opener###')
-		Log('(PLUG-IN) <==** EXIT getURL')
-		return (URL, HEADER)
+		Protected = True
+		return (url, header)
 
 	base64string = base64.encodestring('%s:%s' % (Username, Password))[:-1]
 	authheader = "Basic %s" % base64string
 	req.add_header("Authorization", authheader)
-	HEADER = {"Authorization": authheader}
+	header = {"Authorization": authheader}
 
 	try: handle = urllib2.urlopen(req)
 	except IOError:
 		# here we shouldn't fail if the username/password is right
 		Log("(PLUG-IN) It looks like the username or password is wrong.")
-		Protected = "Yes"
-		Log('(PLUG-IN) <==** EXIT getURL')
+		Protected = True
 		return (None, None)
 
-	# All OK :-)
-	Protected = "Yes"
+	# All OK :-) # What does this even mean ???
+	Protected = True
 
-	return (req,HEADER)
+	return (req, header)
 
 def cleanHTML(text, skipchars=[], extra_careful=1):
 	'''This is an attempt to get rid of " &auml; " etc within a string
