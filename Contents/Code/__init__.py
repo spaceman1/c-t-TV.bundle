@@ -50,29 +50,30 @@ def Start():
 
 
 def MainMenu(sender = None):
-	(MainTitle, MainSubtitle, CurrentVideoTitle, CurrentVideoURL, Themes, topics, Archive) = LoadFP()
-	dir = MediaContainer(title1=MainTitle, title2=MainSubtitle, viewGroup="List")
-	dir.Append(Function(DirectoryItem(CurrentShowMenu, title=CurrentVideoTitle), CurrentVideoURL=CurrentVideoURL, CurrentVideoTITLE=CurrentVideoTitle, Themes=Themes))
+	(mainTitle, mainSubtitle, currentVideoTitle, currentVideoURL, themes, topics, archive) = LoadFP()
+	dir = MediaContainer(title1=mainTitle, title2=mainSubtitle, viewGroup="List")
+	dir.Append(Function(DirectoryItem(CurrentShowMenu, title=currentVideoTitle), currentVideoURL=currentVideoURL, currentVideoTitle=currentVideoTitle, themes=themes))
 
 	for url, title in topics:
 		dir.Append(Function(DirectoryItem(TopicMenu, title=title), TopicURL=url))
 
 	# Add the ARCHIVE to the container
-	dir.Append(Function(DirectoryItem(ArchiveMenu, title="Sendungsarchiv"), ArchiveList = Archive))
+	dir.Append(Function(DirectoryItem(ArchiveMenu, title="Sendungsarchiv"), ArchiveList=archive))
 	return dir
 
-def CurrentShowMenu(sender, CurrentVideoURL, CurrentVideoTITLE, Themes):
-	dir = MediaContainer(title1=sender.title2, title2=CurrentVideoTITLE, viewGroup="Info")
-	dir.Append(WebVideoItem(CurrentVideoURL, CurrentVideoTITLE))
+def CurrentShowMenu(sender, currentVideoURL, currentVideoTitle, themes):
+	dir = MediaContainer(title1=sender.title2, title2=currentVideoTITLE, viewGroup="Info")
+	dir.Append(WebVideoItem(currentVideoURL, currentVideoTitle))
 
-	check = getURL(CurrentVideoURL, False)
-	if check[1] != {None:None}:
-		# Needed Authentication ctTV-Main Page
-		Show_Main = HTML.ElementFromURL(CurrentVideoURL, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
-	else:
-		Show_Main = HTML.ElementFromURL(CurrentVideoURL, cacheTime=None, encoding="Latin-1", errors="ignore")
+	if themes == None:
+		check = getURL(currentVideoURL, False)
+		if check[1] != {None:None}:
+			# Needed Authentication ctTV-Main Page
+			show_Main = HTML.ElementFromURL(currentVideoURL, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
+		else:
+			show_Main = HTML.ElementFromURL(currentVideoURL, cacheTime=None, encoding="Latin-1", errors="ignore")
 
-	themes = getThemes(Show_Main)
+		themes = getThemes(show_Main)
 
 	for url, title, summary in themes:
 		dir.Append(WebVideoItem(url, title=title, summary=summary))
@@ -80,16 +81,8 @@ def CurrentShowMenu(sender, CurrentVideoURL, CurrentVideoTITLE, Themes):
 	return dir
 
 def LoadFP():
-	OLDMENU = ""
-
-	MenuItems = []
-	Page_Items = []
-
-	# Test if we need ID - PW ... and get it
 	check = getURL(ROOT_URL, False)
 
-	# Build a TREE representation of the page
-	# Do we need to add the AUTHENTICATION header
 	if check[1] != {None:None}:
 		# Needed Authentication ctTV-Main Page
 		ctTV_Main = HTML.ElementFromURL(ROOT_URL, headers=check[1], cacheTime=0, encoding="Latin-1", errors="ignore")
@@ -100,57 +93,38 @@ def LoadFP():
 	ctTV_MainString = cleanHTML(urllib2.urlopen(check[0]).read())
 
 	# Get some MAIN Meta-Data of c't TV:
-	MainTitle = ctTV_Main.xpath("/html/body/div[@id='navi_top']/div[1]/ul[1]/li[2]/a")[0]
-	MainTitle = tostring(MainTitle).split('">')[1][:-4].replace('<span>','').replace('</span>','').encode('Latin-1').decode('utf-8')
-	MainSubtitle = ctTV_Main.xpath("/html/body/div[@id='navi_top']/div[1]/ul[3]/li[4]/a")[0].text.encode('Latin-1').decode('utf-8')
+	mainTitle = ctTV_Main.xpath("/html/body/div[@id='navi_top']/div[1]/ul[1]/li[2]/a")[0]
+	mainTitle = tostring(mainTitle).split('">')[1:-4].replace('<span>','').replace('</span>','').encode('Latin-1').decode('utf-8')
+	mainSubtitle = ctTV_Main.xpath("/html/body/div[@id='navi_top']/div[1]/ul[3]/li[4]/a")[0].text.encode('Latin-1').decode('utf-8')
 
 	# Define current video
-	CurrentVideoTitle1 = ctTV_Main.xpath("//*[@id='hauptbereich']/div[@id='video']/h1/text()")[0].encode('Latin-1').decode('utf-8')
-	CurrentVideoTitle2 = ctTV_Main.xpath("//*[@id='hauptbereich']/div[@id='video']/h1")[0]
-	CurrentVideoTitle2 = tostring(CurrentVideoTitle2).split('|')[1].split('<')[0].encode('Latin-1').decode('utf-8')
-	CurrentVideoTitle = CurrentVideoTitle1 + '|' + CurrentVideoTitle2
-	CurrentVideoURL = ROOT_URL
+	currentVideoTitle1 = ctTV_Main.xpath("//*[@id='hauptbereich']/div[@id='video']/h1/text()")[0].encode('Latin-1').decode('utf-8')
+	currentVideoTitle2 = ctTV_Main.xpath("//*[@id='hauptbereich']/div[@id='video']/h1")[0]
+	currentVideoTitle2 = tostring(currentVideoTitle2).split('|')[1].split('<')[0].encode('Latin-1').decode('utf-8')
+	currentVideoTitle = currentVideoTitle1 + '|' + currentVideoTitle2
+	currentVideoURL = ROOT_URL
 
-	# Collect Theme List
-	Themes = getThemes(ctTV_Main)
+	themes = getThemes(ctTV_Main)
+	topics = getTopics(ctTV_Main)
+	archive = getArchive(ctTV_MainString)
 
-	# Collect Topic List
-	Topics = getTopics(ctTV_Main)
+	return (mainTitle, mainSubtitle, currentVideoTitle, currentVideoURL, themes, topics, archive)
 
-	# Collect Video Archive List
-	Archive = getArchive(ctTV_MainString)
-
-
-	return (MainTitle, MainSubtitle, CurrentVideoTitle, CurrentVideoURL, Themes, Topics, Archive)
-
-def getThemes(WebPageTree):
-	# Get the list of Themes from the Element Tree
-	Themelist = WebPageTree.xpath("//*[@id='themenuebersicht']/ul/li/a")
-
-	# How many did we get?
-	anzahl_themen = len(Themelist)
-
-	Themes = []
-	for Thema in range(0,anzahl_themen):
-		ThemenSet = Themelist[Thema]
-		try:
-			URL = BASE_URL + ThemenSet.get('href')
-		except:
-			URL = "URL Error"
+def getThemes(page):
+	themes = list()
+	for index, themenSet in enumerate(page.xpath("//*[@id='themenuebersicht']/ul/li/a")):
+		try: url = BASE_URL + themenSet.get('href')
+		except: url = None
 		
-		try:
-			TITEL = str(Thema+1) + ". Teil: " + WebPageTree.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='titel']/text()")[Thema].encode('Latin-1').decode('utf-8')
-		except:
-			TITEL = "Titel Error"
+		try: title = str(index + 1) + ". Teil: " + page.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='titel']/text()")[index].encode('Latin-1').decode('utf-8')
+		except: title = None
 
-		try:
-			DESCRIPTION = WebPageTree.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='beschreibung']/text()")[Thema].encode('Latin-1').decode('utf-8')
-		except:
-			DESCRIPTION = "DESCRIPTION Error"
+		try: summary = page.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='beschreibung']/text()")[Thema].encode('Latin-1').decode('utf-8')
+		except: summary = None
 
-		if URL != "": Themes = Themes + [(URL,TITEL,DESCRIPTION)]
+		if url: themes.append((url, title, summary))
 
-	return Themes
+	return themes
 
 
 def getTopics(WebPageTree):
@@ -392,9 +366,9 @@ def ArchiveMenu(sender, ArchiveList):
 							subtitle= None,
 							summary = None,
 							thumb = THUMB,),
-						CurrentVideoURL = URL,
-						CurrentVideoTITLE = TITEL,
-						Themes = None)
+						currentVideoURL = URL,
+						currentVideoTITLE = TITEL,
+						themes = None)
 				 )
 	return dir
 
