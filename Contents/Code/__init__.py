@@ -163,112 +163,74 @@ def getArchive(ctTV_MainString):
 
 	return archives
 
-def TopicMenu(sender, TopicURL):
-	global FrontPage
-
-	if len(FrontPage) == 0:
-		FrontPage = LoadFP()
-
-	# Test if we need ID - PW ... and get it
+def TopicMenu(sender, topicURL):
+	FrontPage = LoadFP()
 	check = getURL(TopicURL, False)
-
-	# Build a TREE representation of the page
-	# Do we need to add the AUTHENTICATION header
 	if check[1] != {None:None}:
-		Log('(PLUG-IN) Needed Authentication ctTV-Main Page')
-		Topic_Main = HTML.ElementFromURL(TopicURL, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
+		# Needed Authentication ctTV-Main Page')
+		topicMain = HTML.ElementFromURL(topicURL, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
 	else:
-		Topic_Main = HTML.ElementFromURL(TopicURL, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
+		topicMain = HTML.ElementFromURL(topicURL, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
 
 	# Read a string version of the page
-	Topic_MainString = cleanHTML(urllib2.urlopen(check[0]).read())
+	topicMainString = cleanHTML(urllib2.urlopen(check[0]).read())
 
 	# Collect Video Archive List
-	ArchiveList = getArchive(Topic_MainString)
+	archives = getArchive(topicMainString)
 
-	dir = MediaContainer(art = MainArt, title1=sender.title2, title2=sender.itemTitle, viewGroup="Info")
+	dir = MediaContainer(title1=sender.title2, title2=sender.itemTitle, viewGroup="Info")
 
+	# OK this is horrible but it's a UI string thing so I'll leave it for now
 	if sender.itemTitle == "News":
-		TITEL = "Aktuelle " + sender.itemTitle
-
+		title = "Aktuelle " + sender.itemTitle
 	else:
-		TITEL = "Aktuell " + sender.itemTitle
+		title = "Aktuell " + sender.itemTitle
 
-	SUBTITLE = Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/h2")[0].text_content().encode('Latin-1').decode('utf-8')
+	subtitle = topicMain.xpath("//*[@id='hauptbereich']/div[3]/h2")[0].text.encode('Latin-1').decode('utf-8')
 
 	if ((sender.itemTitle == "News") or (sender.itemTitle == 'Computer-ABC')):
-		SUMMARY = Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text_content()
-		TEMP = ""
+		summary = topicMain.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text
 		if ((sender.itemTitle == "News")):
-			SUMMARY = Topic_Main.xpath("//*/strong")
-			for item in range(0,len(SUMMARY)):
-				try:
-					TEMP = TEMP + str(SUMMARY[item].text_content().encode('Latin-1')) + '\n\n'
-				except:
-					TEMP = TEMP + str(SUMMARY[item].text_content()) + '\n\n'
-			SUMMARY = TEMP
+			summary = topicMain.xpath("//*/strong")
 		else:
-			SUMMARY = SUMMARY + "\n\n" + Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text_content()
+			summary += "\n\n" + topicMain.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
 		
 		if ((sender.itemTitle == "Computer-ABC")):
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
+			summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
 		elif ((sender.itemTitle == "News")):
-			SUMMARY = SUMMARY.decode('utf-8')
+			summary = summary.decode('utf-8')
 		else:
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8')
+			summary = summary.encode('Latin-1').decode('utf-8')
 
 	else:
-		SUMMARY = Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text_content()
-		SUMMARY = SUMMARY + "\n\n" + Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text_content()
-		SUMMARY = SUMMARY + "\n\n" + Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/content_ad_possible/p[1]")[0].text_content()
+		summary = topicMain.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text
+		summary += "\n\n" + Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
+		summary += "\n\n" + Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/content_ad_possible/p[1]")[0].text
 		
 		try:
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
+			summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
 		except:
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8')
+			summary = summary.encode('Latin-1').decode('utf-8')
 
 	#class WebVideoItem(self, url, title, subtitle=None, summary=None, duration=None, thumb=None, art=None, **kwargs):
-	dir.Append(WebVideoItem(  TopicURL,
-					TITEL,
-					subtitle = SUBTITLE,
-					summary = SUMMARY,
-					duration = None,
-					)
-			 )
-
-	anzahl_archivelist = len(ArchiveList)
-
-	for Item in range(anzahl_archivelist-2,0,-1):
-		(URL,THUMB, ALT, TITEL) = ArchiveList[Item]
+	dir.Append(WebVideoItem(topicURL, title=title, subtitle=subtitle, summary=summary))
+	archives.reverse()
+	for url , thumb, alt, title in archives[2:]:
 		if sender.itemTitle == "Schnurer hilft!":
-			try:
-				TITEL = TITEL.split('Video Schnurer hilft ')[1]
-			except:
-				TITEL = 'Video Schnurer hilft '
+			try: title = title.split('Video Schnurer hilft ')[1]
+			except: title = 'Video Schnurer hilft '
 		elif sender.itemTitle == "News":
-			try:
-				TITEL = 'News' + TITEL.split('Sendung')[1]
-			except:
-				TITEL = TITEL
+			try: title= 'News' + title.split('Sendung')[1]
+			except: pass
 		elif sender.itemTitle == "Computer-ABC":
-			try:
-				TITEL = "Was ist: " + TITEL.split('ABC')[1]
-			except:
-				TITEL = TITEL
+			try: title = "Was ist: " + title.split('ABC')[1]
+			except: pass
 		else:
-			TITEL = TITEL.split('Video ')[1]
+			title = title.split('Video ')[1]
 
-		(SUBTITLE, SUMMARY) = getArchiveDetail(sender, URL)
+		(subtitle, summary) = getArchiveDetail(sender, URL)
 
-		dir.Append(WebVideoItem(  URL,
-						TITEL,
-						subtitle = SUBTITLE,
-						summary = SUMMARY,
-						duration = None,
-						thumb = THUMB,
-						)
-				 )
-
+		dir.Append(WebVideoItem(url, title=title, subtitle=subtitle, summary=summary, thumb=thumb))
 	return dir
 
 def getArchiveDetail(sender, URL):
