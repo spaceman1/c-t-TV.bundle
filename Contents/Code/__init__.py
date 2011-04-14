@@ -233,78 +233,48 @@ def TopicMenu(sender, topicURL):
 		dir.Append(WebVideoItem(url, title=title, subtitle=subtitle, summary=summary, thumb=thumb))
 	return dir
 
-def getArchiveDetail(sender, URL):
-	# Test if we need ID - PW ... and get it
+def getArchiveDetail(sender, url):
 	check = getURL(URL, False)
-
-	# Build a TREE representation of the page
-	# Do we need to add the AUTHENTICATION header
 	if check[1] != {None:None}:
-		Log('(PLUG-IN) Needed Authentication ctTV-Main Page')
-		Archive_Main = HTML.ElementFromURL(URL, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
+		# Needed Authentication ctTV-Main Page')
+		archiveMain = HTML.ElementFromURL(url, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
 	else:
-		Archive_Main = HTML.ElementFromURL(URL, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
+		Archive_Main = HTML.ElementFromURL(url, cacheTime=None, encoding="Latin-1", errors="ignore")
 
-	SUBTITLE = Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/h2")[0].text.encode('Latin-1').decode('utf-8')
+	subtitle = archiveMain.xpath("//*[@id='hauptbereich']/div[3]/h2")[0].text.encode('Latin-1').decode('utf-8')
 
 	if ((sender.itemTitle == "News") or (sender.itemTitle == 'Computer-ABC')):
-		SUMMARY = Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text_content()
-		TEMP = ""
+		summary = archiveMain.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text
 		if ((sender.itemTitle == "News")):
-			SUMMARY = Archive_Main.xpath("//*/strong")
-			for item in range(0, len(SUMMARY)):
-				try:
-					TEMP = TEMP + str(SUMMARY[item].text_content().encode('Latin-1')) + '\n\n'
-				except:
-					TEMP = TEMP + str(SUMMARY[item].text_content()) + '\n\n'
-			SUMMARY = TEMP
+			summary = archiveMain.xpath("//*/strong")
 		else:
-			SUMMARY = SUMMARY + "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text_content()
+			summary += "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
 		
 		if ((sender.itemTitle == "Computer-ABC")):
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
+			summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
 		elif ((sender.itemTitle == "News")):
-			SUMMARY = SUMMARY.decode('utf-8')
+			summary = summary.decode('utf-8')
 		else:
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8')
+			summary = summary.encode('Latin-1').decode('utf-8')
 			
 	else:
-		SUMMARY = Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text_content()
-		SUMMARY = SUMMARY + "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text_content()
-		try:
-			SUMMARY = SUMMARY + "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/content_ad_possible/p[1]")[0].text_content()
-		except:
-			SUMMARY = SUMMARY
+		summary = archiveMain.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text
+		summary += "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
+		
+		try: summary += "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/content_ad_possible/p[1]")[0].text
+		except: pass
 
-		try:
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
+		try: summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
+		except:	summary = summary.encode('Latin-1').decode('utf-8')
 
-		except:
-			SUMMARY = SUMMARY.encode('Latin-1').decode('utf-8')
+	return (subtitle, summary)
 
-	return (SUBTITLE, SUMMARY)
-
-def ArchiveMenu(sender, ArchiveList):
-	global FrontPage
-	# Get the items for the FRONT page ... all top-level menu items
-	if len(FrontPage) == 0:
-		FrontPage = LoadFP()
-
+def ArchiveMenu(sender, archiveList):
 	dir = MediaContainer(title1=sender.title2, title2=sender.itemTitle, viewGroup="Info")
 
-	anzahl_shows = len(ArchiveList)
-
-	for Show in range(anzahl_shows-2,0,-1):
-		(URL,THUMB, ALT, TITEL) = ArchiveList[Show]
-		dir.Append(Function(DirectoryItem(CurrentShowMenu,
-							title = TITEL,
-							subtitle= None,
-							summary = None,
-							thumb = THUMB,),
-						currentVideoURL = URL,
-						currentVideoTITLE = TITEL,
-						themes = None)
-				 )
+	archiveList.reverse()
+	for url,thumb, alt, title in archiveList[2:]:
+		dir.Append(Function(DirectoryItem(CurrentShowMenu, title=title, thumb=thumb), currentVideoURL=url, currentVideoTitle=title, themes=None))
 	return dir
 
 
