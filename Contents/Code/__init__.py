@@ -1,16 +1,6 @@
-# -*- coding: utf-8 -*-
-# The above line is used to allow european / german characters to be used WITHIN this file (code)
-#
-# First ALPHA release on 05-23-2009
-# Version 0.1
-#
 # ct TV is the weekly broadcast of ct Magazine; europe's biggest computer magazine.
 # This plug-in makes the last 28 shows available
 # All the comntent is in German
-#
-# We use FRAMEWORK #1
-#
-#
 
 import os.path
 from lxml.html import fromstring, tostring
@@ -31,9 +21,6 @@ CACHE_INTERVAL = CACHE_1HOUR
 MainArt = 'art-default.png'
 MainThumb = 'icon-default.png'
 
-FrontPage = []
-SecondPage = []
-
 ####################################################################################################
 
 def Start():
@@ -49,16 +36,16 @@ def Start():
 ####################################################################################################
 
 
-def MainMenu(sender = None):
-	(mainTitle, mainSubtitle, currentVideoTitle, currentVideoURL, themes, topics, archive) = LoadFP()
-	dir = MediaContainer(title1=mainTitle, title2=mainSubtitle, viewGroup="List")
+def MainMenu(sender=None):
+	(mainTitle, mainSubtitle, currentVideoTitle, currentVideoURL, themes, topics, archives) = LoadFP()
+	dir = MediaContainer(title1=mainTitle, title2=mainSubtitle, viewGroup="_List")
 	dir.Append(Function(DirectoryItem(CurrentShowMenu, title=currentVideoTitle), currentVideoURL=currentVideoURL, currentVideoTitle=currentVideoTitle, themes=themes))
 
 	for url, title in topics:
-		dir.Append(Function(DirectoryItem(TopicMenu, title=title), TopicURL=url))
+		dir.Append(Function(DirectoryItem(TopicMenu, title=title), topicURL=url))
 
 	# Add the ARCHIVE to the container
-	dir.Append(Function(DirectoryItem(ArchiveMenu, title="Sendungsarchiv"), ArchiveList=archive))
+	dir.Append(Function(DirectoryItem(ArchiveMenu, title="Sendungsarchiv"), archives=archives))
 	return dir
 
 def CurrentShowMenu(sender, currentVideoURL, currentVideoTitle, themes):
@@ -112,14 +99,14 @@ def LoadFP():
 
 def getThemes(page):
 	themes = list()
-	for index, themenSet in enumerate(page.xpath("//*[@id='themenuebersicht']/ul/li/a")):
-		try: url = BASE_URL + themenSet.get('href')
+	for index, theme in enumerate(page.xpath("//*[@id='themenuebersicht']/ul/li/a")):
+		try: url = BASE_URL + theme.get('href')
 		except: continue
 		
 		try: title = str(index + 1) + ". Teil: " + page.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='titel']/text()")[index].encode('Latin-1').decode('utf-8')
 		except: title = None
 
-		try: summary = page.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='beschreibung']/text()")[Thema].encode('Latin-1').decode('utf-8')
+		try: summary = page.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='beschreibung']/text()")[index].encode('Latin-1').decode('utf-8')
 		except: summary = None
 
 		themes.append((url, title, summary))
@@ -129,12 +116,12 @@ def getThemes(page):
 
 def getTopics(page):
 	topics = list()
-	for index, topicSet in enumerate(page.xpath("//*[@id='navigation-rubriken']/li/a")):
-		try: url = BASE_URL + topicSet.get('href')
+	for index, topic in enumerate(page.xpath("//*[@id='navigation-rubriken']/li/a")):
+		try: url = BASE_URL + topic.get('href')
 		except: continue
 
-		try: 
-			title = page.xpath("//*[@id='navigation-rubriken']/li/a")[Topic].text.encode('utf-8')
+		try:
+			title = page.xpath("//*[@id='navigation-rubriken']/li/a")[index].text.encode('utf-8')
 			# This is horrible and probably unecessary but I'm leaving it for now
 			if isinstance(title, str):
 				title = unicode(title,'utf-8')
@@ -146,17 +133,17 @@ def getTopics(page):
 def getArchive(ctTV_MainString):
 	page = HTML.ElementFromString(ctTV_MainString.split('<script type="text/javascript">')[1].split("</div> \<script\> var scrollto_mini")[0][17:])
 	archives = list()
-	for ArchiveSet in page.xpath('//a')[:-2]:
-		try: url = BASE_URL + archiveSet.get('href')
+	for archive in page.xpath('//a')[:-2]:
+		try: url = BASE_URL + archive.get('href')
 		except: continue
 
-		try: thumb = BASE_URL + archiveSet.find('img').get('src')
+		try: thumb = BASE_URL + archive.find('img').get('src')
 		except: thumb = None
 
-		try: alt = archiveSet.find('img').get('alt')
+		try: alt = archive.find('img').get('alt')
 		except: alt = None
 
-		try: title = archiveSet.find('img').get('title')[:-2].replace('-',' ').encode('Latin-1').decode('utf-8')
+		try: title = archive.find('img').get('title')[:-2].replace('-',' ').encode('Latin-1').decode('utf-8')
 		except: title = None
 
 		archives.append((url , thumb, alt, title))
@@ -164,8 +151,7 @@ def getArchive(ctTV_MainString):
 	return archives
 
 def TopicMenu(sender, topicURL):
-	FrontPage = LoadFP()
-	check = getURL(TopicURL, False)
+	check = getURL(topicURL, False)
 	if check[1] != {None:None}:
 		# Needed Authentication ctTV-Main Page')
 		topicMain = HTML.ElementFromURL(topicURL, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
@@ -207,13 +193,12 @@ def TopicMenu(sender, topicURL):
 		summary += "\n\n" + Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
 		summary += "\n\n" + Topic_Main.xpath("//*[@id='hauptbereich']/div[3]/content_ad_possible/p[1]")[0].text
 		
-		try:
-			summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
-		except:
-			summary = summary.encode('Latin-1').decode('utf-8')
+		try: summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
+		except: summary = summary.encode('Latin-1').decode('utf-8')
 
 	#class WebVideoItem(self, url, title, subtitle=None, summary=None, duration=None, thumb=None, art=None, **kwargs):
 	dir.Append(WebVideoItem(topicURL, title=title, subtitle=subtitle, summary=summary))
+	
 	archives.reverse()
 	for url , thumb, alt, title in archives[2:]:
 		if sender.itemTitle == "Schnurer hilft!":
@@ -228,13 +213,13 @@ def TopicMenu(sender, topicURL):
 		else:
 			title = title.split('Video ')[1]
 
-		(subtitle, summary) = getArchiveDetail(sender, URL)
+		(subtitle, summary) = getArchiveDetail(sender, url)
 
 		dir.Append(WebVideoItem(url, title=title, subtitle=subtitle, summary=summary, thumb=thumb))
 	return dir
 
 def getArchiveDetail(sender, url):
-	check = getURL(URL, False)
+	check = getURL(url, False)
 	if check[1] != {None:None}:
 		# Needed Authentication ctTV-Main Page')
 		archiveMain = HTML.ElementFromURL(url, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
@@ -248,7 +233,7 @@ def getArchiveDetail(sender, url):
 		if ((sender.itemTitle == "News")):
 			summary = archiveMain.xpath("//*/strong")
 		else:
-			summary += "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
+			summary += "\n\n" + archiveMain.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
 		
 		if ((sender.itemTitle == "Computer-ABC")):
 			summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
@@ -259,9 +244,9 @@ def getArchiveDetail(sender, url):
 			
 	else:
 		summary = archiveMain.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text
-		summary += "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
+		summary += "\n\n" + archiveMain.xpath("//*[@id='hauptbereich']/div[3]/p")[0].text
 		
-		try: summary += "\n\n" + Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/content_ad_possible/p[1]")[0].text
+		try: summary += "\n\n" + archiveMain.xpath("//*[@id='hauptbereich']/div[3]/content_ad_possible/p[1]")[0].text
 		except: pass
 
 		try: summary = summary.encode('Latin-1').decode('utf-8').encode('Latin-1').decode('utf-8')
@@ -269,11 +254,11 @@ def getArchiveDetail(sender, url):
 
 	return (subtitle, summary)
 
-def ArchiveMenu(sender, archiveList):
+def ArchiveMenu(sender, archives):
 	dir = MediaContainer(title1=sender.title2, title2=sender.itemTitle, viewGroup="Info")
 
-	archiveList.reverse()
-	for url,thumb, alt, title in archiveList[2:]:
+	archives.reverse()
+	for url, thumb, alt, title in archives[2:]:
 		dir.Append(Function(DirectoryItem(CurrentShowMenu, title=title, thumb=thumb), currentVideoURL=url, currentVideoTitle=title, themes=None))
 	return dir
 
@@ -283,8 +268,7 @@ def getURL(url, installDefault=False):
 If needed it can also set the DEFAULT handler with these credentials
 making successive calls with no need to specify ID-PW'''
 
-	# I have no idea where these come from. An unimplemented preferences perhaps?
-	global Protected
+	# I have no idea where username & password come from. An unimplemented preferences perhaps?
 	global Username
 	global Password
 
@@ -297,9 +281,7 @@ making successive calls with no need to specify ID-PW'''
 	try: handle = urllib2.urlopen(req)
 	except: pass
 	else:
-		# Here the page isn't protected
-		Protected = False
-		Log('(PLUG-IN) URL is NOT protected')
+		#  URL is NOT protected
 		return (url , header)
 
 	if not hasattr(e, 'code') or e.code != 401:
@@ -310,14 +292,13 @@ making successive calls with no need to specify ID-PW'''
 
 	authline = e.headers['www-authenticate']
 	# this regular expression is used to extract scheme and realm
-	matchobj = re.match(r'(?:\s*www-authenticate\s*:)?\s*(\w*)\s+realm=['"]([^'"]+)['"]', authline, re.IGNORECASE)
+	matchobj = re.match(r'''(?:\s*www-authenticate\s*:)?\s*(\w*)\s+realm=['"]([^'"]+)['"]''', authline, re.IGNORECASE)
 
 	if not matchobj:
 		# if the authline isn't matched by the regular expression
 		# then something is wrong
 		Log('(PLUG-IN) The authentication header is badly formed.')
 		Log('(PLUG-IN) Authline: %s' % (authline))
-		Protected = True
 		return (None, None)
 
 	scheme = matchobj.group(1)
@@ -326,7 +307,6 @@ making successive calls with no need to specify ID-PW'''
 	# and the realm from the header
 	if scheme.lower() != 'basic':
 		Log('(PLUG-IN) This function only works with BASIC authentication.')
-		Protected = True
 		return (None, None)
 
 	if installDefault:
@@ -338,7 +318,6 @@ making successive calls with no need to specify ID-PW'''
 		urllib2.install_opener(opener)
 
 		# All OK :-)
-		Protected = True
 		return (url, header)
 
 	base64string = base64.encodestring('%s:%s' % (Username, Password))[:-1]
@@ -350,12 +329,9 @@ making successive calls with no need to specify ID-PW'''
 	except IOError:
 		# here we shouldn't fail if the username/password is right
 		Log("(PLUG-IN) It looks like the username or password is wrong.")
-		Protected = True
 		return (None, None)
 
 	# All OK :-) # What does this even mean ???
-	Protected = True
-
 	return (req, header)
 
 def cleanHTML(text, skipchars=[], extra_careful=True):
