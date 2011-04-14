@@ -13,8 +13,8 @@
 #
 
 import os.path
-from lxml.etree import fromstring, tostring
-from BeautifulSoup import BeautifulSoup
+#from lxml.etree import fromstring, tostring
+#from BeautifulSoup import BeautifulSoup
 from  htmlentitydefs import entitydefs
 import re
 import base64
@@ -28,8 +28,8 @@ PLUG_IN_LOC = "~/Library/Application\ Support/Plex\ Media\ Server/Plug-ins/c't\ 
 
 CACHE_INTERVAL = CACHE_1HOUR
 
-MainArt = R('art-default.png')
-MainThumb = R('icon-default.png')
+MainArt = 'art-default.png'
+MainThumb = 'icon-default.png'
 
 FrontPage = []
 SecondPage = []
@@ -40,110 +40,46 @@ def Start():
 	Plugin.AddPrefixHandler(PLUGIN_PREFIX, MainMenu, L("c't TV"), 'icon-default.png', 'art-default.png')
 	Plugin.AddViewGroup("_List", viewMode="List", mediaType="items")
 	Plugin.AddViewGroup("Info", viewMode="InfoList", mediaType="items")
-	HTTP.cacheTime(4 * CACHE_1HOUR)
+	HTTP.SetCacheTime(4 * CACHE_1HOUR)
 	MediaContainer.title1 = "c't TV"
 	MediaContainer.viewGroup = '_List'
-	DirectoryItem.art = MainArt
-	DirectoryItem.thumb = MainThumb
+	DirectoryItem.art = R(MainArt)
+	DirectoryItem.thumb = R(MainThumb)
 
 ####################################################################################################
 
 
 def MainMenu(sender = None):
-	global FrontPage
-	# Get the items for the FRONT page ... all top-level menu items
-	if len(FrontPage) == 0:
-		FrontPage = LoadFP()
-
-	(MainTitle, MainSubtitle, CurrentVideoTitle, CurrentVideoURL, Themes, Topics, Archive) = FrontPage
-
+	(MainTitle, MainSubtitle, CurrentVideoTitle, CurrentVideoURL, Themes, topics, Archive) = LoadFP()
 	dir = MediaContainer(title1=MainTitle, title2=MainSubtitle, viewGroup="List")
+	dir.Append(Function(DirectoryItem(CurrentShowMenu, title=CurrentVideoTitle), CurrentVideoURL=CurrentVideoURL, CurrentVideoTITLE=CurrentVideoTitle, Themes=Themes))
 
-	# Add current SHOW to media container
-	# DirectoryItem( key, title, subtitle=None, summary=None, thumb=None, art=None, **kwargs)
-	dir.Append(Function(DirectoryItem(CurrentShowMenu,
-						title = CurrentVideoTitle,
-						subtitle= None,
-						summary = None),
-					CurrentVideoURL = CurrentVideoURL,
-					CurrentVideoTITLE = CurrentVideoTitle,
-					Themes = Themes)
-			 )
-
-	# Add all the TOPICS to the container
-	anzahl_topics = len(Topics)
-
-	for Topic in range(0, anzahl_topics):
-
-		(URL,TITEL) = Topics[Topic]
-
-		# DirectoryItem( key, title, subtitle=None, summary=None, thumb=None, art=None, **kwargs)
-		dir.Append(Function(DirectoryItem(TopicMenu,
-							title = TITEL,
-							subtitle= None,
-							summary = None),
-						TopicURL = URL)
-				 )
+	for url, title in topics:
+		dir.Append(Function(DirectoryItem(TopicMenu, title=title), TopicURL=url))
 
 	# Add the ARCHIVE to the container
-	# DirectoryItem( key, title, subtitle=None, summary=None, thumb=None, art=None, **kwargs)
-	dir.Append(Function(DirectoryItem(ArchiveMenu,
-						title = "Sendungsarchiv",
-						subtitle= None,
-						summary = None),
-					ArchiveList = Archive)
-			 )
+	dir.Append(Function(DirectoryItem(ArchiveMenu, title="Sendungsarchiv"), ArchiveList = Archive))
 	return dir
 
 def CurrentShowMenu(sender, CurrentVideoURL, CurrentVideoTITLE, Themes):
-
 	dir = MediaContainer(title1=sender.title2, title2=CurrentVideoTITLE, viewGroup="Info")
+	dir.Append(WebVideoItem(CurrentVideoURL, CurrentVideoTITLE))
 
-	#class WebVideoItem(self, url, title, subtitle=None, summary=None, duration=None, thumb=None, art=None, **kwargs):
-	dir.Append(WebVideoItem(  CurrentVideoURL,
-					CurrentVideoTITLE,
-					subtitle = None,
-					summary = None,
-					duration = None,
-					)
-			 )
+	check = getURL(CurrentVideoURL, False)
+	if check[1] != {None:None}:
+		# Needed Authentication ctTV-Main Page
+		Show_Main = HTML.ElementFromURL(CurrentVideoURL, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
+	else:
+		Show_Main = HTML.ElementFromURL(CurrentVideoURL, cacheTime=None, encoding="Latin-1", errors="ignore")
 
-	# Check if we have the Themes ... if NOT ==> get them
-	if Themes == None:
-		# Collect Theme List
-		# Test if we need ID - PW ... and get it
-		check = getURL(CurrentVideoURL, False)
+	themes = getThemes(Show_Main)
 
-		# Build a TREE representation of the page
-		# Do we need to add the AUTHENTICATION header
-		if check[1] <> {None:None}:
-			Log('(PLUG-IN) Needed Authentication ctTV-Main Page')
-			Show_Main = XML.ElementFromURL(CurrentVideoURL, isHTML=True, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
-		else:
-			Show_Main = XML.ElementFromURL(CurrentVideoURL, isHTML=True, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
-
-		Themes = getThemes(Show_Main)
-
-	anzahl_themes = len(Themes)
-
-	for Thema in range(0, anzahl_themes):
-
-		(URL,TITEL,DESCRIPTION) = Themes[Thema]
-
-		dir.Append(WebVideoItem(  URL,
-						TITEL,
-						subtitle = None,
-						summary = DESCRIPTION,
-						duration = None,
-						)
-				 )
+	for url, title, summary in themes:
+		dir.Append(WebVideoItem(url, title=title, summary=summary))
 
 	return dir
 
 def LoadFP():
-
-	Log('(PLUG-IN) **==> ENTER Load ct TV Main Page')
-
 	OLDMENU = ""
 
 	MenuItems = []
@@ -154,11 +90,11 @@ def LoadFP():
 
 	# Build a TREE representation of the page
 	# Do we need to add the AUTHENTICATION header
-	if check[1] <> {None:None}:
-		Log('(PLUG-IN) Needed Authentication ctTV-Main Page')
-		ctTV_Main = XML.ElementFromURL(ROOT_URL, isHTML=True, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
+	if check[1] != {None:None}:
+		# Needed Authentication ctTV-Main Page
+		ctTV_Main = HTML.ElementFromURL(ROOT_URL, headers=check[1], cacheTime=0, encoding="Latin-1", errors="ignore")
 	else:
-		ctTV_Main = XML.ElementFromURL(ROOT_URL, isHTML=True, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
+		ctTV_Main = HTML.ElementFromURL(ROOT_URL, cacheTime=0, encoding="Latin-1", errors="ignore")
 
 	# Read a string version of the page
 	ctTV_MainString = cleanHTML(urllib2.urlopen(check[0]).read())
@@ -293,9 +229,9 @@ def TopicMenu(sender, TopicURL):
 	# Do we need to add the AUTHENTICATION header
 	if check[1] != {None:None}:
 		Log('(PLUG-IN) Needed Authentication ctTV-Main Page')
-		Topic_Main = XML.ElementFromURL(TopicURL, isHTML=True, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
+		Topic_Main = HTML.ElementFromURL(TopicURL, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
 	else:
-		Topic_Main = XML.ElementFromURL(TopicURL, isHTML=True, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
+		Topic_Main = HTML.ElementFromURL(TopicURL, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
 
 	# Read a string version of the page
 	Topic_MainString = cleanHTML(urllib2.urlopen(check[0]).read())
@@ -396,11 +332,11 @@ def getArchiveDetail(sender, URL):
 	# Do we need to add the AUTHENTICATION header
 	if check[1] != {None:None}:
 		Log('(PLUG-IN) Needed Authentication ctTV-Main Page')
-		Archive_Main = XML.ElementFromURL(URL, isHTML=True, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
+		Archive_Main = HTML.ElementFromURL(URL, values=None, headers=check[1], cacheTime=None, encoding="Latin-1", errors="ignore")
 	else:
-		Archive_Main = XML.ElementFromURL(URL, isHTML=True, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
+		Archive_Main = HTML.ElementFromURL(URL, values=None, cacheTime=None, encoding="Latin-1", errors="ignore")
 
-	SUBTITLE = Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/h2")[0].text_content().encode('Latin-1').decode('utf-8')
+	SUBTITLE = Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/h2")[0].text.encode('Latin-1').decode('utf-8')
 
 	if ((sender.itemTitle == "News") or (sender.itemTitle == 'Computer-ABC')):
 		SUMMARY = Archive_Main.xpath("//*[@id='hauptbereich']/div[3]/h1")[0].text_content()
@@ -579,7 +515,7 @@ Still working on it ... any help appreicated.'''
 		skipchars = [skipchars]
 
 	keyholder= {}
-	for x in _badchars_regex.findall(text):
+	for x in badchars_regex.findall(text):
 		if x not in skipchars:
 			keyholder[x] = 1
 	text = text.replace('&','&amp;')
