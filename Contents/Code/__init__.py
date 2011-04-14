@@ -25,15 +25,15 @@ import base64
 import urllib
 import urllib2
 
-PLUGIN_PREFIX   = "/video/ctTV"
-ROOT_URL        = "http://www.heise.de/ct-tv/"
-BASE_URL        = "http://www.heise.de"
-PLUG_IN_LOC     = "~/Library/Application\ Support/Plex\ Media\ Server/Plug-ins/c't\ TV.bundle/Contents/Resources"
+PLUGIN_PREFIX = "/video/ctTV"
+ROOT_URL = "http://www.heise.de/ct-tv/"
+BASE_URL = "http://www.heise.de"
+PLUG_IN_LOC = "~/Library/Application\ Support/Plex\ Media\ Server/Plug-ins/c't\ TV.bundle/Contents/Resources"
 
-CACHE_INTERVAL  = 3600
+CACHE_INTERVAL = 3600
 
-MainArt         = "%s/:/resources/%s" % (PLUGIN_PREFIX, "art-default.png")
-MainThumb       = "%s/:/resources/%s" % (PLUGIN_PREFIX, "icon-default.png")
+MainArt = "%s/:/resources/%s" % (PLUGIN_PREFIX, "art-default.png")
+MainThumb = "%s/:/resources/%s" % (PLUGIN_PREFIX, "icon-default.png")
 
 FrontPage = []
 SecondPage = []
@@ -85,15 +85,15 @@ def MainMenu(sender = None):
 	# Add current SHOW to media container
 	# DirectoryItem( key, title, subtitle=None, summary=None, thumb=None, art=None, **kwargs)
 	dir.Append(Function(DirectoryItem(CurrentShowMenu,
-					  title = CurrentVideoTitle,
-					  subtitle= None,
-					  summary = None,
-					  thumb = None, #Would be nice to use a DIFFERENT Thumb here
-					  art= MainArt),
-			    CurrentVideoURL = CurrentVideoURL,
-			    CurrentVideoTITLE = CurrentVideoTitle,
-			    Themes = Themes)
-		   )
+						title = CurrentVideoTitle,
+						subtitle= None,
+						summary = None,
+						thumb = None, #Would be nice to use a DIFFERENT Thumb here
+						art= MainArt),
+					CurrentVideoURL = CurrentVideoURL,
+					CurrentVideoTITLE = CurrentVideoTitle,
+					Themes = Themes)
+			 )
 
 	# Add all the TOPICS to the container
 	anzahl_topics = len(Topics)
@@ -104,24 +104,24 @@ def MainMenu(sender = None):
 
 		# DirectoryItem( key, title, subtitle=None, summary=None, thumb=None, art=None, **kwargs)
 		dir.Append(Function(DirectoryItem(TopicMenu,
-						  title = TITEL,
-						  subtitle= None,
-						  summary = None,
-						  thumb = None, #Would be nice to use a DIFFERENT Thumb here
-						  art= MainArt),
-				    TopicURL = URL)
-			   )
+							title = TITEL,
+							subtitle= None,
+							summary = None,
+							thumb = None, #Would be nice to use a DIFFERENT Thumb here
+							art= MainArt),
+						TopicURL = URL)
+				 )
 
 	# Add the ARCHIVE to the container
 	# DirectoryItem( key, title, subtitle=None, summary=None, thumb=None, art=None, **kwargs)
 	dir.Append(Function(DirectoryItem(ArchiveMenu,
-					  title = "Sendungsarchiv",
-					  subtitle= None,
-					  summary = None,
-					  thumb = None, #Would be nice to use a DIFFERENT Thumb here
-					  art= MainArt),
-			    ArchiveList = Archive)
-		   )
+						title = "Sendungsarchiv",
+						subtitle= None,
+						summary = None,
+						thumb = None, #Would be nice to use a DIFFERENT Thumb here
+						art= MainArt),
+					ArchiveList = Archive)
+			 )
 
 
 	Log('(PLUG-IN) <==** EXIT Main Menu')
@@ -134,14 +134,14 @@ def CurrentShowMenu(sender, CurrentVideoURL, CurrentVideoTITLE, Themes):
 
 	#class WebVideoItem(self, url, title, subtitle=None, summary=None, duration=None, thumb=None, art=None, **kwargs):
 	dir.Append(WebVideoItem(  CurrentVideoURL,
-				  CurrentVideoTITLE,
-				  subtitle = None,
-				  summary = None,
-				  duration = None,
-				  thumb = MainThumb,
-				  art = MainArt
-				  )
-		   )
+					CurrentVideoTITLE,
+					subtitle = None,
+					summary = None,
+					duration = None,
+					thumb = MainThumb,
+					art = MainArt
+					)
+			 )
 
 	# Check if we have the Themes ... if NOT ==> get them
 	if Themes == None:
@@ -166,14 +166,14 @@ def CurrentShowMenu(sender, CurrentVideoURL, CurrentVideoTITLE, Themes):
 		(URL,TITEL,DESCRIPTION) = Themes[Thema]
 
 		dir.Append(WebVideoItem(  URL,
-					  TITEL,
-					  subtitle = None,
-					  summary = DESCRIPTION,
-					  duration = None,
-					  thumb = MainThumb,
-					  art = MainArt
-					  )
-			   )
+						TITEL,
+						subtitle = None,
+						summary = DESCRIPTION,
+						duration = None,
+						thumb = MainThumb,
+						art = MainArt
+						)
+				 )
 
 	return dir
 
@@ -228,34 +228,34 @@ def LoadFP():
 def getThemes(WebPageTree):
 
 	global MainArt
-        global MainThumb
+				global MainThumb
 
-        Log('(PLUG-IN) **==> ENTER Getting THEMES from current page')
+				Log('(PLUG-IN) **==> ENTER Getting THEMES from current page')
 
-        if MainThumb == None:
+				if MainThumb == None:
 		MainArt         = "%s/:/resources/%s" % (PLUGIN_PREFIX, "art-default.png")
 		MainThumb       = "%s/:/resources/%s" % (PLUGIN_PREFIX, "icon-default.png")
 
 	# Get the list of Themes from the Element Tree
-        Themelist = WebPageTree.xpath("//*[@id='themenuebersicht']/ul/li/a")
+				Themelist = WebPageTree.xpath("//*[@id='themenuebersicht']/ul/li/a")
 
 	#ML(Themelist[0])
 
 	# How many did we get?
-        anzahl_themen = len(Themelist)
+				anzahl_themen = len(Themelist)
 
-        Themes = []
-        # Get the URL, THUMB, and DESCRIPTION for each Thema
-        for Thema in range(0,anzahl_themen):
+				Themes = []
+				# Get the URL, THUMB, and DESCRIPTION for each Thema
+				for Thema in range(0,anzahl_themen):
 
-                ThemenSet = Themelist[Thema]
+								ThemenSet = Themelist[Thema]
 
 		#ML(ThemenSet)
 
-                try:
-                        URL = BASE_URL + ThemenSet.get('href')
-                except:
-                        URL = "URL Error"
+								try:
+												URL = BASE_URL + ThemenSet.get('href')
+								except:
+												URL = "URL Error"
 
 		#ML(URL)
 
@@ -275,47 +275,47 @@ def getThemes(WebPageTree):
 
 		#ML(DESCRIPTION)
 
-                if URL <> "":
-                        Themes = Themes + [(URL,TITEL,DESCRIPTION)]
+								if URL <> "":
+												Themes = Themes + [(URL,TITEL,DESCRIPTION)]
 
 	#Log(len(Themes))
 
-        Log('(PLUG-IN) <==** EXIT Getting THEMES from current page')
+				Log('(PLUG-IN) <==** EXIT Getting THEMES from current page')
 
-        return Themes
+				return Themes
 
 
 def getTopics(WebPageTree):
 
 	global MainArt
-        global MainThumb
+				global MainThumb
 
-        Log('(PLUG-IN) **==> ENTER Getting TOPICS from current page')
+				Log('(PLUG-IN) **==> ENTER Getting TOPICS from current page')
 
-        if MainThumb == None:
+				if MainThumb == None:
 		MainArt         = "%s/:/resources/%s" % (PLUGIN_PREFIX, "art-default.png")
 		MainThumb       = "%s/:/resources/%s" % (PLUGIN_PREFIX, "icon-default.png")
 
 	# Get the list of Topics from the Element Tree
-        Topiclist = WebPageTree.xpath("//*[@id='navigation-rubriken']/li/a")
+				Topiclist = WebPageTree.xpath("//*[@id='navigation-rubriken']/li/a")
 
 	#ML(Topiclist)
 
 	# How many did we get?
-        anzahl_Topics = len(Topiclist)
+				anzahl_Topics = len(Topiclist)
 
-        Topics = []
-        # Get the URL and TITLE for each Topic
-        for Topic in range(0,anzahl_Topics):
+				Topics = []
+				# Get the URL and TITLE for each Topic
+				for Topic in range(0,anzahl_Topics):
 
-                TopicSet = Topiclist[Topic]
+								TopicSet = Topiclist[Topic]
 
 		#ML(TopicSet)
 
-                try:
-                        URL = BASE_URL + TopicSet.get('href')
-                except:
-                        URL = "URL Error"
+								try:
+												URL = BASE_URL + TopicSet.get('href')
+								except:
+												URL = "URL Error"
 
 		#ML(URL)
 
@@ -329,23 +329,23 @@ def getTopics(WebPageTree):
 
 		#ML(TITEL)
 
-                if URL <> "":
-                        Topics = Topics + [(URL,TITEL)]
+								if URL <> "":
+												Topics = Topics + [(URL,TITEL)]
 
 	Log(len(Topics))
 
-        Log('(PLUG-IN) <==** EXIT Getting TOPICS from current page')
+				Log('(PLUG-IN) <==** EXIT Getting TOPICS from current page')
 
-        return Topics
+				return Topics
 
 def getArchive(ctTV_MainString):
 
 	global MainArt
-        global MainThumb
+				global MainThumb
 
-        Log('(PLUG-IN) **==> ENTER Getting PREVIOUS SHOWS from current page')
+				Log('(PLUG-IN) **==> ENTER Getting PREVIOUS SHOWS from current page')
 
-        if MainThumb == None:
+				if MainThumb == None:
 		MainArt         = "%s/:/resources/%s" % (PLUGIN_PREFIX, "art-default.png")
 		MainThumb       = "%s/:/resources/%s" % (PLUGIN_PREFIX, "icon-default.png")
 
@@ -354,32 +354,32 @@ def getArchive(ctTV_MainString):
 
 	Archivelist = BeautifulSoup(WebPageTree).findAll('a')
 
-        Log(len(Archivelist))
+				Log(len(Archivelist))
 	#ML(Archivelist[0])
 
 	# How many did we get?
-        anzahl_Archives = len(Archivelist)
+				anzahl_Archives = len(Archivelist)
 
-        Archives = []
-        # Get the URL, THUMB, and ALT description for each Thema
-        for Show in range(0,anzahl_Archives-2):
+				Archives = []
+				# Get the URL, THUMB, and ALT description for each Thema
+				for Show in range(0,anzahl_Archives-2):
 
-                ArchiveSet = Archivelist[Show]
+								ArchiveSet = Archivelist[Show]
 
 		#ML(ArchiveSet)
 
-                # We have to TRY each attribute as not all stations have all attributes.
-                try:
-                        URL = BASE_URL + ArchiveSet.get('href')
+								# We have to TRY each attribute as not all stations have all attributes.
+								try:
+												URL = BASE_URL + ArchiveSet.get('href')
 		except:
-                        URL = "URL Error"
+												URL = "URL Error"
 
 		#ML(URL)
 
 		try:
-                        THUMB = BASE_URL + ArchiveSet.find('img').get('src')
-                except:
-                        THUMB = "THUMB Error"
+												THUMB = BASE_URL + ArchiveSet.find('img').get('src')
+								except:
+												THUMB = "THUMB Error"
 
 		#ML(THUMB)
 
@@ -399,14 +399,14 @@ def getArchive(ctTV_MainString):
 
 		#ML(TITEL)
 
-                if URL <> "":
-                        Archives = Archives + [(URL,THUMB, ALT, TITEL)]
+								if URL <> "":
+												Archives = Archives + [(URL,THUMB, ALT, TITEL)]
 
 	Log(len(Archives))
 
-        Log('(PLUG-IN) <==** EXIT Getting PREVIOUS SHOWS from current page')
+				Log('(PLUG-IN) <==** EXIT Getting PREVIOUS SHOWS from current page')
 
-        return Archives
+				return Archives
 
 def TopicMenu(sender, TopicURL):
 
@@ -500,14 +500,14 @@ def TopicMenu(sender, TopicURL):
 
 	#class WebVideoItem(self, url, title, subtitle=None, summary=None, duration=None, thumb=None, art=None, **kwargs):
 	dir.Append(WebVideoItem(  TopicURL,
-				  TITEL,
-				  subtitle = SUBTITLE,
-				  summary = SUMMARY,
-				  duration = None,
-				  thumb = MainThumb,
-				  art = MainArt
-				  )
-		   )
+					TITEL,
+					subtitle = SUBTITLE,
+					summary = SUMMARY,
+					duration = None,
+					thumb = MainThumb,
+					art = MainArt
+					)
+			 )
 
 	anzahl_archivelist = len(ArchiveList)
 
@@ -553,14 +553,14 @@ def TopicMenu(sender, TopicURL):
 		(SUBTITLE, SUMMARY) = getArchiveDetail(sender, URL)
 
 		dir.Append(WebVideoItem(  URL,
-					  TITEL,
-					  subtitle = SUBTITLE,
-					  summary = SUMMARY,
-					  duration = None,
-					  thumb = THUMB,
-					  art = MainArt
-					  )
-			   )
+						TITEL,
+						subtitle = SUBTITLE,
+						summary = SUMMARY,
+						duration = None,
+						thumb = THUMB,
+						art = MainArt
+						)
+				 )
 
 	Log('(PLUG-IN) <==** EXIT Topic Menu')
 
@@ -669,15 +669,15 @@ def ArchiveMenu(sender, ArchiveList):
 		# Add current SHOW to media container
 		# DirectoryItem( key, title, subtitle=None, summary=None, thumb=None, art=None, **kwargs)
 		dir.Append(Function(DirectoryItem(CurrentShowMenu,
-						  title = TITEL,
-						  subtitle= None,
-						  summary = None,
-						  thumb = THUMB, #Would be nice to use a DIFFERENT Thumb here
-						  art= MainArt),
-				    CurrentVideoURL = URL,
-				    CurrentVideoTITLE = TITEL,
-				    Themes = None)
-			   )
+							title = TITEL,
+							subtitle= None,
+							summary = None,
+							thumb = THUMB, #Would be nice to use a DIFFERENT Thumb here
+							art= MainArt),
+						CurrentVideoURL = URL,
+						CurrentVideoTITLE = TITEL,
+						Themes = None)
+				 )
 
 	Log('(PLUG-IN) <==** EXIT Archive Menu')
 	return dir
@@ -773,9 +773,9 @@ def getURL(URL, InstallDefault = False ):
 		# Create an OpenerDirector with support for Basic HTTP Authentication...
 		auth_handler = urllib2.HTTPBasicAuthHandler()
 		auth_handler.add_password(realm=REALM,
-					  uri=URL,
-					  user=Username,
-					  passwd=Password)
+						uri=URL,
+						user=Username,
+						passwd=Password)
 		opener = urllib2.build_opener(auth_handler)
 		# ...and install it globally so it can be used with urlopen.
 		urllib2.install_opener(opener)
