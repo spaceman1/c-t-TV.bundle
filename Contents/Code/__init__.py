@@ -114,7 +114,7 @@ def getThemes(page):
 	themes = list()
 	for index, themenSet in enumerate(page.xpath("//*[@id='themenuebersicht']/ul/li/a")):
 		try: url = BASE_URL + themenSet.get('href')
-		except: url = None
+		except: continue
 		
 		try: title = str(index + 1) + ". Teil: " + page.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='titel']/text()")[index].encode('Latin-1').decode('utf-8')
 		except: title = None
@@ -122,36 +122,26 @@ def getThemes(page):
 		try: summary = page.xpath("//*[@id='themenuebersicht']/ul/li/a/span[@class='beschreibung']/text()")[Thema].encode('Latin-1').decode('utf-8')
 		except: summary = None
 
-		if url: themes.append((url, title, summary))
+		themes.append((url, title, summary))
 
 	return themes
 
 
-def getTopics(WebPageTree):
-	Topiclist = WebPageTree.xpath("//*[@id='navigation-rubriken']/li/a")
-	anzahl_Topics = len(Topiclist)
+def getTopics(page):
+	topics = list()
+	for index, topicSet in enumerate(page.xpath("//*[@id='navigation-rubriken']/li/a")):
+		try: url = BASE_URL + topicSet.get('href')
+		except: continue
 
-	Topics = []
-	# Get the URL and TITLE for each Topic
-	for Topic in range(0,anzahl_Topics):
-		TopicSet = Topiclist[Topic]
-		try:
-			URL = BASE_URL + TopicSet.get('href')
+		try: 
+			title = page.xpath("//*[@id='navigation-rubriken']/li/a")[Topic].text.encode('utf-8')
+			# This is horrible and probably unecessary but I'm leaving it for now
+			if isinstance(title, str):
+				title = unicode(title,'utf-8')
 		except:
-			URL = "URL Error"
+			title = None
 
-		try:
-			TITEL = WebPageTree.xpath("//*[@id='navigation-rubriken']/li/a")[Topic].text_content().encode('utf-8') #.decode('utf-8').encode('Latin-1').decode('utf-8')
-			if isinstance(TITEL, str):
-				TITEL = unicode(TITEL,'utf-8')
-		except:
-			TITEL = "Titel Error"
-		
-		if URL != "": Topics = Topics + [(URL,TITEL)]
-
-	Log(len(Topics))
-
-	return Topics
+	return topics
 
 def getArchive(ctTV_MainString):
 	WebPageTree = ctTV_MainString.split('<script type="text/javascript">')[1].split("</div> \<script\> var scrollto_mini")[0][17:]
