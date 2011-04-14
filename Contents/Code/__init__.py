@@ -13,8 +13,8 @@
 #
 
 import os.path
-#from lxml.etree import fromstring, tostring
-#from BeautifulSoup import BeautifulSoup
+from lxml.html import fromstring, tostring
+from BeautifulSoup import BeautifulSoup
 from  htmlentitydefs import entitydefs
 import re
 import base64
@@ -94,7 +94,7 @@ def LoadFP():
 
 	# Get some MAIN Meta-Data of c't TV:
 	mainTitle = ctTV_Main.xpath("/html/body/div[@id='navi_top']/div[1]/ul[1]/li[2]/a")[0]
-	mainTitle = tostring(mainTitle).split('">')[1:-4].replace('<span>','').replace('</span>','').encode('Latin-1').decode('utf-8')
+	mainTitle = tostring(mainTitle).split('">')[1][:-4].replace('<span>','').replace('</span>','').encode('Latin-1').decode('utf-8')
 	mainSubtitle = ctTV_Main.xpath("/html/body/div[@id='navi_top']/div[1]/ul[3]/li[4]/a")[0].text.encode('Latin-1').decode('utf-8')
 
 	# Define current video
@@ -144,41 +144,24 @@ def getTopics(page):
 	return topics
 
 def getArchive(ctTV_MainString):
-	WebPageTree = ctTV_MainString.split('<script type="text/javascript">')[1].split("</div> \<script\> var scrollto_mini")[0][17:]
-	Archivelist = BeautifulSoup(WebPageTree).findAll('a')
-	Log(len(Archivelist))
-	anzahl_Archives = len(Archivelist)
+	page = HTML.ElementFromString(ctTV_MainString.split('<script type="text/javascript">')[1].split("</div> \<script\> var scrollto_mini")[0][17:])
+	archives = list()
+	for ArchiveSet in page.xpath('//a')[:-2]:
+		try: url = BASE_URL + archiveSet.get('href')
+		except: continue
 
-	Archives = []
-	for Show in range(0,anzahl_Archives-2):
-		ArchiveSet = Archivelist[Show]
-		# We have to TRY each attribute as not all stations have all attributes.
-		try:
-			URL = BASE_URL + ArchiveSet.get('href')
-		except:
-			URL = "URL Error"
+		try: thumb = BASE_URL + archiveSet.find('img').get('src')
+		except: thumb = None
 
-		try:
-			THUMB = BASE_URL + ArchiveSet.find('img').get('src')
-		except:
-			THUMB = "THUMB Error"
+		try: alt = archiveSet.find('img').get('alt')
+		except: alt = None
 
-		try:
-			ALT = ArchiveSet.find('img').get('alt')
-		except:
-			ALT = "ALT Error"
+		try: title = archiveSet.find('img').get('title')[:-2].replace('-',' ').encode('Latin-1').decode('utf-8')
+		except: title = None
 
-		try:
-			TITEL = ArchiveSet.find('img').get('title')[:-2].replace('-',' ').encode('Latin-1').decode('utf-8')
-		except:
-			TITEL = "Titel Error"
+		archives.append((url , thumb, alt, title))
 
-		if URL != "":
-			Archives = Archives + [(URL,THUMB, ALT, TITEL)]
-
-	Log(len(Archives))
-
-	return Archives
+	return archives
 
 def TopicMenu(sender, TopicURL):
 	global FrontPage
