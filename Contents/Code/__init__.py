@@ -358,13 +358,13 @@ making successive calls with no need to specify ID-PW'''
 
 	return (req, header)
 
-def cleanHTML(text, skipchars=[], extra_careful=1):
+def cleanHTML(text, skipchars=[], extra_careful=True):
 	'''This is an attempt to get rid of " &auml; " etc within a string
 Still working on it ... any help appreicated.'''
 
 	entitydefs_inverted = {}
 
-	for k,v in entitydefs.items():
+	for k,v in entitydefs.iteritems():
 		entitydefs_inverted[v] = k
 
 	badchars_regex = re.compile('|'.join(entitydefs.values()))
@@ -384,13 +384,13 @@ Still working on it ... any help appreicated.'''
 			keyholder[x] = 1
 	text = text.replace('&','&amp;')
 	text = text.replace('\x80', '&#8364;')
-	for each in keyholder.keys():
-		if each == '&':
+	for key in keyholder.keys():
+		if key == '&':
 			continue
 
-		better = entitydefs_inverted[each]
+		better = entitydefs_inverted[key]
 		if not better.startswith('&#'):
-			better = '&%s;'%entitydefs_inverted[each]
+			better = '&%s;' % entitydefs_inverted[each]
 
-		text = text.replace(each, better)
+		text = text.replace(key, better)
 	return text
